@@ -1,104 +1,57 @@
-import 'dart:math';
+// lib/screens/add_note_screen.dart
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:note_app/screen/homePage.dart';
+import '../db/db_helper.dart';
 
-class addNote extends StatefulWidget {
-  const addNote({super.key});
-
+class AddNoteScreen extends StatefulWidget {
   @override
-  State<addNote> createState() => _addNoteState();
+  State<AddNoteScreen> createState() => _AddNoteScreenState();
 }
 
-class _addNoteState extends State<addNote> {
+class _AddNoteScreenState extends State<AddNoteScreen> {
+  TextEditingController titleController = TextEditingController();
+  TextEditingController descController = TextEditingController();
 
-  TextEditingController _note=TextEditingController();
+  void saveNote() async {
+    await DBHelper.insertNote({
+      'title': titleController.text,
+      'description': descController.text,
+    });
 
-  User? user=FirebaseAuth.instance.currentUser;
-
-
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.lightBlue,
-        title: Text('addNote'),
-        centerTitle: true,
+        title: Text("Add Note"),
       ),
-
-      body: Center(
+      body: Padding(
+        padding: EdgeInsets.all(15),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              margin: EdgeInsets.symmetric(horizontal: 40),
-              child: TextFormField(
-                controller: _note,
-                decoration: InputDecoration(
-                  label: Text('add note'),
-                ),
+            TextField(
+              controller: titleController,
+              decoration: InputDecoration(
+                labelText: "Title",
+                border: OutlineInputBorder(),
               ),
             ),
-
-
-
-
-
-            // ==============butttons=============
-
+            SizedBox(height: 15),
+            TextField(
+              controller: descController,
+              maxLines: 4,
+              decoration: InputDecoration(
+                labelText: "Description",
+                border: OutlineInputBorder(),
+              ),
+            ),
             SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Container(
-                  // margin: EdgeInsets.only(left: 35),
-                  height: 40,
-                  width: 100,
-                  child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.lightBlue,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)
-                          )
-                      ),
-                      onPressed:()async{
-                        var note=_note.text.trim();
-
-                        if (note.isNotEmpty){
-                          await FirebaseFirestore.instance
-                              .collection('notes')
-                              .doc()
-                              .set({
-                            'createAt': DateTime.now(),
-                            "note": note,
-                            'userId': user?.uid,
-                            'crateAt': DateTime.now()
-                          }).then((value)=>Get.off(homePage()));
-                        }
-                      },
-                      child: Text('add',style: TextStyle(
-                          fontSize: 18
-                      ),)
-                  ),
-                ),
-
-
-
-                // ============cancel button==========
-
-                Container(
-                    child: Text('cancel')
-                )
-
-              ],
-            )
+            ElevatedButton(
+              onPressed: saveNote,
+              child: Text("Save"),
+            ),
           ],
         ),
       ),

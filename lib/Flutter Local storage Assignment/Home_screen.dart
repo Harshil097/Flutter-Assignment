@@ -1,126 +1,86 @@
+// lib/screens/home_screen.dart
 
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:note_app/screen/addNote.dart';
-import 'package:note_app/screen/editScreen.dart';
+import '../db/db_helper.dart';
+import 'add_note_screen.dart';
+import 'edit_note_screen.dart';
 
-class homePage extends StatefulWidget {
-  const homePage({super.key});
-
+class HomeScreen extends StatefulWidget {
   @override
-  State<homePage> createState() => _homePageState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _homePageState extends State<homePage> {
+class _HomeScreenState extends State<HomeScreen> {
+  List notes = [];
 
-  User? user=FirebaseAuth.instance.currentUser;
+  void fetchNotes() async {
+    notes = await DBHelper.getNotes();
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchNotes();
+  }
 
   @override
   Widget build(BuildContext context) {
-
-
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.lightBlue,
-        title: Text('homePage'),
+        title: Text("Notes App"),
         centerTitle: true,
       ),
-
-      body: Container(
-        child: StreamBuilder(
-            stream:
-            FirebaseFirestore.instance
-                .collection('notes')
-                .where('userId', isEqualTo: user!.uid)
-                .snapshots(),
-
-            builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-              if (snapshot.hasError) {
-                return Text('error');
-              }
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CupertinoActivityIndicator());
-              }
-
-              if(snapshot !=null && snapshot.data !=null) {
-                return ListView.builder(
-                    itemCount: snapshot.data!.docs.length,
-                    itemBuilder: (context, index) {
-                      var Note = snapshot.data!.docs[index]['note'];
-                      var noteId = snapshot.data!.docs[index]['userId'];
-                      var docId = snapshot.data!.docs[index].id;
-
-
-                      return Card(
-                        margin: EdgeInsets.all(8),
-                        child: ListTile(
-                          title: Text(Note),
-                          subtitle: Text(snapshot.data!.docs[index]['userId']),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-
-                              GestureDetector(
-                                onTap: (){
-                                  Get.to(()=> editscreen());
-                                },
-                                child: Icon(Icons.edit),
-                              ),
-                              SizedBox(width: 10),
-                              GestureDetector(
-                                onTap: (){
-                                  showDialog(
-                                      context: context,
-                                      builder:
-                                          (BuildContext context )=>AlertDialog(
-                                        title: Text('delete'),
-                                        content: Text('are you sure to delete'),
-                                        actions: <Widget>[
-                                          TextButton(
-                                              onPressed: ()async {
-                                                await FirebaseFirestore.instance
-                                                    .collection('notes')
-                                                    .doc(docId)
-                                                    .delete();
-                                                Navigator.pop(context);
-                                              },
-                                              child: Text('Yes')
-                                          ),
-
-                                          TextButton(
-                                              onPressed: (){
-                                                Navigator.pop(context ,'ok');
-                                              },
-                                              child: Text('No')
-                                          ),
-                                        ],
-                                      )
-                                  );
-                                },
-                                child: Icon(Icons.delete),
-                              ),
-                            ],
+      body: notes.isEmpty
+          ? Center(child: Text("No Notes Found"))
+          : ListView.builder(
+        itemCount: notes.length,
+        itemBuilder: (context, index) {
+          return Card(
+            child: ListTile(
+              title: Text(notes[index]['title']),
+              subtitle: Text(notes[index]['description']),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditNoteScreen(
+                            id: notes[index]['id'],
+                            title: notes[index]['title'],
+                            description: notes[index]['description'],
                           ),
                         ),
                       );
-                    }
-                );
-              }
-              return Container();
-            }
-        ),
-      ),
-
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Get.to(addNote());
+                      fetchNotes();
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete),
+                    onPressed: () async {
+                      await DBHelper.deleteNote(notes[index]['id']);
+                      fetchNotes();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => AddNoteScreen()),
+          );
+          fetchNotes();
+        },
       ),
     );
   }
