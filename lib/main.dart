@@ -41,14 +41,12 @@ import 'Task_7.dart';
 import 'Task_8.dart';
 import 'Task_9.dart';
 
-void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => CartProvider(),
-      child: MyApp(),
-    ),
-  );
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
